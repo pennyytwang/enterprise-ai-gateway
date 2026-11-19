@@ -1,0 +1,17 @@
+# MySQL Service（Gateway 的 datasource host=mysql 就是吃到這個）
+# 同 namespace 內 kube-dns 解析：mysql.<ns>.svc.cluster.local（簡寫 mysql）
+# 套用：kubectl apply -f 07-mysql-service.yaml -n ai-gateway
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  type: ClusterIP
+  selector:
+    app: mysql
+  ports:
+  - port: 3306
+    targetPort: 3306
+    protocol: TCP

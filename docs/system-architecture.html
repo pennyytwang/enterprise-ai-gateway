@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>企業智慧化 — CharPhone 系統 + AI Gateway 整體架構</title>
+  <!-- reveal.js -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reset.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/white.css">
+  <!-- Mermaid -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+  <style>
+    .reveal { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; }
+    .reveal h1, .reveal h2, .reveal h3 { color: #1a1a2e; }
+    .reveal section { text-align: left; }
+    .reveal .slide-title { text-align: left; }
+    .reveal h1 { font-size: 2.2em; }
+    .reveal h2 { font-size: 1.6em; margin-bottom: .3em; }
+    .reveal h3 { font-size: 1.2em; color: #4361ee; }
+    .reveal p, .reveal li { font-size: .78em; line-height: 1.5; color: #334155; }
+    .reveal .badge { display:inline-block; background:#eef2ff; color:#4338ca; border-radius:6px; padding:2px 10px; font-size:.6em; font-weight:700; vertical-align:middle; margin-left:8px; }
+    .reveal .badge-green { background:#d1fae5; color:#065f46; }
+    .reveal .badge-yellow { background:#fef3c7; color:#92400e; }
+    .reveal code { background:#eef2ff; padding:1px 6px; border-radius:4px; font-size:.9em; }
+    .reveal .flex { display:flex; gap:20px; align-items:stretch; }
+    .reveal .flex > .col { flex:1; }
+    .reveal .box { border:1px solid #e5e7eb; border-radius:10px; padding:14px 18px; background:#f8fafc; }
+    .reveal .box h4 { margin:0 0 6px; color:#4361ee; font-size:1.0em; }
+    .reveal .mermaid-wrap { background:#f8fafc; border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-top:12px; }
+    .reveal .mermaid { background:#fff; border-radius:8px; }
+    .reveal .foot { color:#94a3b8; font-size:.55em; margin-top:16px; }
+    .reveal .tag { font-size:.6em; font-weight:700; color:#fff; padding:2px 8px; border-radius:4px; }
+    .tag.gw { background:#4361ee; }
+    .tag.cp { background:#0d9488; }
+    .reveal ul.tight li { margin-bottom:3px; }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============ 1. 標題 ============ -->
+<section>
+  <h2 style="margin-bottom:10px;">企業智慧化</h2>
+  <h1 style="font-size:1.6em; margin-bottom:6px;">CharPhone 訂單管理系統 ＋ AI Gateway 整體架構</h1>
+  <p style="font-size:.9em;color:#6c757d;margin-top:14px;">傳統 ERP → 企業落地 AI · 從「查資料」到「問資料」</p>
+  <p style="margin-top:24px;font-size:.7em;color:#94a3b8;">一份文稿整理 web / API / AI / 知識庫 的完整藍圖</p>
+</section>
+
+<!-- ============ 2. 一句話 ============ -->
+<section>
+  <h2>這是一套什麼系統？</h2>
+  <div class="box">
+    <p style="font-size:.95em;margin:0;">
+      一套<strong>服務翻砂金屬鑄造工廠</strong>的企業系統，由<strong style="color:#0d9488;">訂單管理 ERP（CharPhone）</strong>
+      與<strong style="color:#4361ee;">企業 AI Gateway</strong> 組成：
+    </p>
+    <ul style="margin-top:10px;">
+      <li><span class="tag cp">ERP</span> 內部作業：訂單 → 生產工單 → 入庫 → 出貨 → 應收帳款 / 收款 → 結案</li>
+      <li><span class="tag gw">AI</span> 加值：讓老闆用<strong>自然語言</strong>問「這個月營收」「哪些訂單會延遲」「庫存夠不夠」，AI 自動查 ERP 並彙整回答</li>
+      <li><span class="tag gw">RAG</span> 知識庫：把公司文件（報價流程、SOP）餵進去，AI 依文件回答</li>
+    </ul>
+  </div>
+  <h3 style="margin-top:14px;">核心價值：把「資料」變成「能被問的知識」</h3>
+</section>
+
+<!-- ============ 3. 總覽架構圖 ============ -->
+<section>
+  <h2>整體架構總覽</h2>
+  <div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart TB
+  U["👤 使用者 / 老闆"] --> NG["Nginx<br/>TLS + Coraza WAF + IP 白名單<br/>+ 限流"]
+
+  NG -- "/ 企業 Web" --> WEB["jsp-tomcat 容器 :8080<br/><b>CharPhone Web</b> (JSP/Servlet)"]
+  NG -- "/gateway/ AI" --> GW["ai-gateway 容器 :8081<br/><b>AI Gateway</b> (Spring Boot)"]
+
+  WEB --> MY[( "mydb DB<br/>訂單/生產/出貨/庫存/應收" )]
+  MY --> GW
+
+  GW --> PROV{{"雲端 LLM<br/>OpenRouter / Gemini"}}
+  GW --> SOLR[("Embedded Solr<br/>RAG 向量知識庫 3072d")]
+
+  subgraph GDS["Gateway 自有資料庫 (aigateway)"]
+    MY2[( "api_client / audit_log / tool_audit_log" )]
+  end
+  GW --> MY2
+</pre>
+  </div>
+  <p class="foot">同一台主機、同一個 Docker 網路（charphone_demo）；AI Gateway 用唯讀帳號直查 mydb，不用改 ERP 程式碼。</p>
+</section>
+
+<!-- ============ 4. CharPhone Web 層 ============ -->
+<section>
+  <h2>CharPhone — 傳統 MVC Web</h2>
+  <div class="flex">
+    <div class="col">
+      <div class="box">
+        <h4>呈現場（View）</h4>
+        <ul class="tight">
+          <li>42 支 JSP · JSP/JSTL 自訂標籤 + 原生 JS fetch</li>
+          <li>模組：訂單 / 生產 / 出貨 / 應收 / 客戶 / 品項 / 庫存 / 模擬 / 儀表板 / 帳號</li>
+        </ul>
+      </div>
+      <div class="box" style="margin-top:10px;">
+        <h4>控制層（Servlet 18 支）</h4>
+        <ul class="tight">
+          <li>LoginServlet、OrderServlet、ProductionServlet、DeliveryServlet、InvoiceServlet…</li>
+          <li>業務規則 + JDBC 交易都寫在這裡</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col">
+      <div class="box">
+        <h4>資料存取（DAO 16 支）</h4>
+        <ul class="tight">
+          <li>OrderDao / InvoiceDao / InventoryDao…（全 PreparedStatement）</li>
+          <li>HikariCP 連線池 · BaseDao 讀 DB_URL/DB_USER/DB_PASS</li>
+        </ul>
+      </div>
+      <div class="box" style="margin-top:10px;">
+        <h4>安全</h4>
+        <ul class="tight">
+          <li>AuthFilter 全站 session 驗證 · 密碼 SHA-256 + salt</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <p class="foot">規模：42 JSP · 18 Servlet · 16 DAO · 11 Model · 11 張表。無獨立 service 層，控制邏輯在 Servlet。</p>
+</section>
+
+<!-- ============ 5. 資料模型 mydb ============ -->
+<section>
+  <h2>資料模型（mydb · 11 張表）與核心流程</h2>
+  <div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart LR
+  CU["customers 客戶"] --> OR["orders 訂單明細"]
+  PR["products 品項"] --> OR
+  OR --> PD["productions 生產工單"]
+  PD -->|入庫| INV["inventory_items/stock 庫存"]
+  OR --> DL["deliveries 出貨"]
+  OR --> IV["invoices 應收帳款"]
+  WH["warehouses 倉庫"] --> INV
+  IV -->|收款| CL["結案"]
+</pre>
+  </div>
+  <p style="margin-top:10px;font-size:.7em;">
+    狀態一律<strong>推導</strong>（例如 produced_qty ≥ 訂單量代表完成），不直接信 raw status；
+    出貨不可超量、不可負庫存；結案需「全數出貨＋全數收款」。
+  </p>
+</section>
+
+<!-- ============ 6. AI Gateway 層 ============ -->
+<section>
+  <h2>AI Gateway — Spring Boot 核心</h2>
+  <div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart TB
+  subgraph API["API 層 (/api/v1)"]
+    C["chat / chat/stream"]
+    A["agent/run (工具迴圈)"]
+    R["rag/ingest / query / ask"]
+    AD["admin/* (Key/稽核/狀態)"]
+    H["health / usage/report"]
+  end
+
+  API --> SEC["security<br/>ApiKeyFilter + RateLimit + 遮罩"]
+  SEC --> AGENT["agent/run<br/>AgentService 工具迴圈 (≤8 輪)"]
+  AGENT --> TOOLS["tools (10 支 ToolHandler)"]
+  TOOLS --> ERPS["mydb JdbcTemplate (唯讀)"]
+  TOOLS --> KS["query_knowledge → Solr"]
+
+  SEC --> ROUTER["ModelRouter<br/>Circuit Breaker + Failover"]
+  ROUTER --> GEM["GeminiProvider"]
+  ROUTER --> OAI["OpenAiCompatProvider<br/>(OpenRouter)"]
+  ROUTER --> RAG["RagAskService<br/>檢索 + 摘要"]
+  RAG --> ROUTER
+
+  SEC --> AUD["audit<br/>audit_log + tool_audit_log"]
+</pre>
+  </div>
+  <p class="foot">雙資料源：gateway 主（aigateway DB）+ 業務（mydb 唯讀），所有 JdbcTemplate 注入都明確 @Qualifier。</p>
+</section>
+
+<!-- ============ 7. Agent 工具與 Model Router ============ -->
+<section>
+  <h2>Agent 工具與模型路由</h2>
+  <div class="flex">
+    <div class="col">
+      <div class="box">
+        <h4>10 支工具（ToolRegistry 自動註冊）</h4>
+        <ul class="tight">
+          <li><code>query_orders</code> · <code>query_customers</code> · <code>query_deliveries</code></li>
+          <li><code>query_inventory</code> · <code>query_production</code></li>
+          <li><code>query_sales_summary</code> · <code>query_receivables</code></li>
+          <li><code>query_risk_orders</code> · <code>query_dashboard_kpis</code></li>
+          <li><code>query_knowledge</code>（RAG 知識庫）</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col">
+      <div class="box">
+        <h4>ModelRouter</h4>
+        <ul class="tight">
+          <li>主供應商：OpenRouter（<code>nemotron-3-super-120b:free</code>）</li>
+          <li>備援：Gemini（自動 Failover）</li>
+          <li>Circuit Breaker：連續失敗 3 次 → 暫停 60s → 自動恢復</li>
+          <li>每支工具執行逾時 20s、結果上限 32KB</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8. RAG 知識庫 ============ -->
+<section>
+  <h2>RAG 知識庫（Embedded Solr）</h2>
+  <div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart LR
+  DOC["📄 文件<br/>PDF/DOCX/TXT/MD"] --> ING["IngestionService<br/>擷取 → 切塊 500字/重疊50"]
+  ING --> EMB["Gemini Embedding<br/>gemini-embedding-2 · 3072 維"]
+  EMB --> SOLR[("Embedded Solr rag core<br/>DenseVectorField knn_3072 · 余弦")]
+  Q["❓ 問題"] --> QE["Query Embedding"] --> SOLR
+  SOLR --> K["Top-K 片段"]
+  K --> ASK["RagAskService<br/>LLM 依知識庫摘要回答"]
+</pre>
+  </div>
+  <ul class="tight" style="margin-top:10px;">
+    <li>三種用法：<strong>ingest</strong>（上傳學習）、<strong>query</strong>（純檢索原文）、<strong>ask</strong>（AI 直接回答）</li>
+    <li>Solr 資料靠 volume 掛載持久化；檔案名稱會自動消毒（去中文/括號）</li>
+  </ul>
+</section>
+
+<!-- ============ 9. 安全 / 控管 / 稽核 ============ -->
+<section>
+  <h2>安全 · 控管 · 稽核</h2>
+  <div class="flex">
+    <div class="col">
+      <div class="box">
+        <h4>認證與授權</h4>
+        <ul class="tight">
+          <li>API Key（DB 只存 SHA-256 雜湊）</li>
+          <li>角色：ADMIN（全部工具）/ USER（客戶、知識庫）</li>
+        </ul>
+      </div>
+      <div class="box" style="margin-top:10px;">
+        <h4>限流</h4>
+        <ul class="tight">
+          <li>Per-Key：滑動視窗 per-min + daily 配額（可選用）</li>
+          <li>Nginx：30 req/min/IP + burst 10</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col">
+      <div class="box">
+        <h4>資料保護</h4>
+        <ul class="tight">
+          <li>稽核落 DB（audit_log / tool_audit_log）</li>
+          <li>敏感資料自動遮罩：身分證、銀行帳號、電話</li>
+        </ul>
+      </div>
+      <div class="box" style="margin-top:10px;">
+        <h4>網路防護</h4>
+        <ul class="tight">
+          <li>Coraza WAF + OWASP CRS</li>
+          <li>IP 白名單 · 登入限流 · TLS</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <p class="foot">Admin 後台 (admin.html) 提供 Key 管理、稽核查詢、用量報表、RAG 文件管理。</p>
+</section>
+
+<!-- ============ 10. 部署拓撲 ============ -->
+<section>
+  <h2>部署拓撲（單一台 GCP VM · Docker）</h2>
+  <div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart TB
+  INT["🌐 Internet<br/>your-domain.example.com :443"] --> NG["Nginx<br/>TLS / WAF / 白名單"]
+  NG --> WEB["jsp-tomcat :8080<br/>CharPhone Web"]
+  NG --> GW["ai-gateway :8081<br/>AI Gateway"]
+  GW <--> MY[(jsp-mysql :3306<br/>未對外)<br/>mydb + aigateway]
+  GW --> SOLR[("Solr volume<br/>/var/lib/ai-gateway/solrhome")]
+  GW --> CLOUD{{"OpenRouter / Gemini"}}
+</pre>
+  </div>
+  <ul class="tight" style="margin-top:10px;">
+    <li>三容器同網 <code>charphone_demo</code>；重啟 <code>docker compose up -d --force-recreate</code></li>
+    <li>AI Gateway 對外只在 <code>/gateway/</code> 路徑、IP 白名單加密</li>
+    <li>機密集中 <code>~/apps/deploy/.env</code>（帳號 / 雲端 Key / 模型）</li>
+  </ul>
+</section>
+
+<!-- ============ 11. 資料流實例 ============ -->
+<section>
+  <h2>一個實際問題怎麼被回答</h2>
+  <div class="box">
+    <p><strong>老闆問：「這個月營收多少？哪幾個客戶佔比最大？」</strong></p>
+  </div>
+  <div class="mermaid-wrap">
+<pre class="mermaid">
+sequenceDiagram
+  participant U as 老闆
+  participant G as AI Gateway
+  participant M as ModelRouter
+  participant T as 工具 query_sales_summary
+  participant D as mydb
+  U->>G: POST /agent/run（自然語言）
+  G->>M: 呼叫 LLM + 工具宣告
+  M->>T: 剖析出「呼叫 query_sales_summary"
+  T->>D: SQL 彙總營收/客戶排行
+  D-->>T: 資料 JSON
+  T-->>M: 工具結果
+  M-->>G: LLM 彙整成一段話
+  G-->>U: 「本月營收 X 元，前五客戶為…」
+</pre>
+  </div>
+  <p class="foot">全程：身份驗證 → 工具權限檢查 → 資料遮罩 → 稽核落 audit_log / tool_audit_log。</p>
+</section>
+
+<!-- ============ 12. 總結 ============ -->
+<section>
+  <h2>總結</h2>
+  <div class="box">
+    <ul>
+      <li><strong>成熟 ERP</strong>：CharPhone 已覆蓋完整工廠作業流程（訂單→生產→出貨→應收→結案）</li>
+      <li><strong>企業落地 AI</strong>：AI Gateway 以「工具呼叫」安全讀取 ERP，不改動原系統程式</li>
+      <li><strong>知識庫 RAG</strong>：公司文件可被自然語言查詢，符合知識管理</li>
+      <li><strong>可受管控</strong>：API Key、限流、稽核、遮罩、WAF、白名單，層層防護</li>
+      <li><strong>可擴充</strong>：新增一支工具 = 新開一個 ToolHandler；模型可熱切換</li>
+    </ul>
+  </div>
+  <p style="margin-top:16px;font-size:.8em;color:#4361ee;">「資料」都在，現在它「會被問了」。</p>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'base', securityLevel: 'loose' });
+  Reveal.initialize({
+    hash: true,
+    slideNumber: true,
+    transition: 'fade'
+  });
+</script>
+</body>
+</html>

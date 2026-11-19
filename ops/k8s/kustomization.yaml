@@ -1,0 +1,33 @@
+# 企業 AI Gateway 本機 K8s 練習 — Reference 答案卷 a.k.a kustomization
+#
+# 用法：
+#   kubectl apply -k ops/k8s          # 一次套用全部（namespace 統一指到 ai-gateway）
+#   kubectl get all -n ai-gateway
+#   kubectl delete -k ops/k8s
+#
+# 依序套用；卡住時可對照各檔註解。
+# Phase 8 收工時用 apply -k 對答案。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - 01-namespace.yaml
+  - 02-configmap.yaml
+  - 03-secret.yaml
+  - 04-solr-pvc.yaml
+  - 05-gateway-deployment.yaml
+  - 06-gateway-service.yaml
+  - 07-mysql-pvc.yaml
+  - 07-mysql-deployment.yaml
+  - 07-mysql-service.yaml
+
+# 全部資源進 ai-gateway namespace
+namespace: ai-gateway
+
+# init SQL 從檔案生成 ConfigMap（kustomize 會加 hash 後綴並自動連動 deployment 的引用）
+configMapGenerator:
+  - name: mysql-init
+    files:
+      - mysql-init/01-init.sql
+    options:
+      disableNameSuffixHash: false

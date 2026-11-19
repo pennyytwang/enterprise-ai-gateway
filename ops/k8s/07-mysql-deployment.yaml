@@ -1,0 +1,60 @@
+# MySQL Deployment（有狀態服務；先學 Deployment+PVC，進階再談 StatefulSet）
+# MySQL 8.0（3306）
+# 套用：kubectl apply -f 07-mysql-deployment.yaml -n ai-gateway
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: gateway-secrets
+              key: MYSQL_ROOT_PASSWORD
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+        - name: mysql-init
+          mountPath: /docker-entrypoint-initdb.d
+          readOnly: true
+        resources:
+          requests:
+            cpu: 250m
+            memory: 384Mi
+          limits:
+            cpu: "1"
+            memory: 768Mi
+        readinessProbe:
+          exec:
+            command: ["sh", "-c", "mysqladmin ping -h127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD --silent"]
+          initialDelaySeconds: 20
+          periodSeconds: 5
+        livenessProbe:
+          exec:
+            command: ["sh", "-c", "mysqladmin ping -h127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD --silent"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: mysql-pvc
+      - name: mysql-init
+        configMap:
+          name: mysql-init        # kustomize 會自動改名成 mysql-init-<hash> 並同步改這裡

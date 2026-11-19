@@ -1,0 +1,37 @@
+# ===== 建置產出 =====
+target/
+*.class
+*.war
+
+# ===== 機密 =====
+geminiapi-key.txt
+openrouter-apikey.txt
+*apikey*.txt
+*api-key*.txt
+secrets/
+*.key
+*.pem
+
+# ===== Docker Compose 機密環境值 =====
+.env
+!ops/deploy/.env.example
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# ===== 資料檔 / 日誌 =====
+data/
+logs/
+*.log
+
+# ===== 備份（含機密，勿進 git） =====
+backup/
+
+# ===== OS =====
+Thumbs.db
+.DS_Store

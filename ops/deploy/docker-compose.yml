@@ -1,0 +1,60 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ai-gateway-demo-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-aigateway_demo_root}
+      MYSQL_DATABASE: aigateway
+      DB_USER: ${DB_USER:-aigateway_app}
+      DB_PASSWORD: ${DB_PASSWORD:-aigateway_demo_app}
+      MYDB_USER: ${MYDB_USER:-aigateway_ro}
+      MYDB_PASSWORD: ${MYDB_PASSWORD:-aigateway_demo_ro}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ../demo/mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ai-gateway:
+    build:
+      context: ../../app
+      dockerfile: Dockerfile
+    image: ai-gateway-demo:latest
+    container_name: ai-gateway-demo
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:8080"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/aigateway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Taipei&characterEncoding=utf-8&useUnicode=true"
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-aigateway_app}
+      DB_PASSWORD: ${DB_PASSWORD:-aigateway_demo_app}
+      MYDB_URL: "jdbc:mysql://mysql:3306/mydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Taipei&characterEncoding=utf-8&useUnicode=true"
+      MYDB_USER: ${MYDB_USER:-aigateway_ro}
+      MYDB_PASSWORD: ${MYDB_PASSWORD:-aigateway_demo_ro}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_COMPAT_API_KEY: ${OPENAI_COMPAT_API_KEY:-}
+      GATEWAY_PROVIDER: ${GATEWAY_PROVIDER:-gemini}
+      GATEWAY_FALLBACK_PROVIDERS: ${GATEWAY_FALLBACK_PROVIDERS:-}
+      GATEWAY_RATE_LIMIT_ENABLED: ${GATEWAY_RATE_LIMIT_ENABLED:-false}
+      GATEWAY_SOLR_HOME: /usr/local/tomcat/solrhome
+      RAG_STORAGE_DIR: /usr/local/tomcat/rag-docs
+      CATALINA_OPTS: "-Dfile.encoding=UTF-8 -Xms128m -Xmx512m -XX:MaxMetaspaceSize=256m"
+    volumes:
+      - solr_data:/usr/local/tomcat/solrhome
+      - rag_docs:/usr/local/tomcat/rag-docs
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
+  solr_data:
+  rag_docs:
+
+networks:
+  default:
+    name: charphone_demo

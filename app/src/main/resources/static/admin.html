@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Gateway 管理後台</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; background: #f4f6fb; color: #1a1a2e; padding: 24px; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .sub { color: #6c757d; font-size: 13px; margin-bottom: 20px; }
+  .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.06); padding: 20px; margin-bottom: 20px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 6px; }
+  input[type=text], input[type=number], select, textarea {
+    width: 100%; padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 8px;
+    font-size: 14px; font-family: inherit;
+  }
+  textarea { min-height: 80px; resize: vertical; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  button {
+    margin-top: 16px; padding: 12px 24px;
+    background: linear-gradient(135deg,#4361ee,#3a56d4); color: #fff;
+    border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-sm { margin-top: 8px; padding: 8px 16px; font-size: 13px; }
+  .btn-outline { background: transparent; color: #4361ee; border: 1.5px solid #4361ee; }
+  .btn-outline:hover { background: #eef2ff; }
+  .btn-danger { background: #ef4444; }
+  .btn-danger:hover { background: #dc2626; }
+  .btn-success { background: #10b981; }
+  .btn-success:hover { background: #059669; }
+  #status { font-size: 13px; color: #6c757d; margin: 12px 0 0; min-height: 18px; }
+  .meta { font-size: 12px; color: #94a3b8; margin-top: 8px; }
+  .badge { display:inline-block; background:#eef2ff; color:#4338ca; border-radius:6px; padding:2px 8px; font-size:12px; margin-left:6px; vertical-align:middle; }
+  .badge-green { background:#d1fae5; color:#065f46; }
+  .badge-red { background:#fee2e2; color:#991b1b; }
+  .badge-yellow { background:#fef3c7; color:#92400e; }
+
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; padding-bottom: 0; overflow-x: auto; }
+  .tab-btn { padding: 10px 18px; font-size: 14px; font-weight: 600; background: transparent; color: #6c757d; border: none; border-bottom: 3px solid transparent; cursor: pointer; margin-bottom: -2px; transition: all .15s; white-space: nowrap; }
+  .tab-btn:hover { color: #4361ee; }
+  .tab-btn.active { color: #4361ee; border-bottom-color: #4361ee; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f8fafc; text-align: left; padding: 10px 12px; font-weight: 600; border-bottom: 2px solid #e0e0e0; white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+  tr:hover td { background: #f8fafc; }
+  .empty-msg { color: #9ca3af; font-size: 13px; text-align: center; padding: 20px; }
+  .page-btns { display: flex; gap: 4px; margin-top: 12px; justify-content: center; }
+  .page-btn { padding: 6px 14px; border: 1.5px solid #e0e0e0; border-radius: 6px; background: #fff; cursor: pointer; font-size: 13px; }
+  .page-btn.active { background: #4361ee; color: #fff; border-color: #4361ee; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+  .stat-card { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; text-align: center; }
+  .stat-card .stat-value { font-size: 28px; font-weight: 700; color: #4361ee; }
+  .stat-card .stat-label { font-size: 12px; color: #6c757d; margin-top: 4px; }
+
+  .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 160px; margin-top: 12px; padding: 0 4px; }
+  .bar { background: linear-gradient(180deg,#4361ee,#3a56d4); border-radius: 4px 4px 0 0; min-width: 30px; position: relative; transition: height .3s; }
+  .bar-label { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #6c757d; white-space: nowrap; }
+  .bar-value { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 600; color: #334155; }
+
+  .filter-bar { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+  .filter-bar > div { flex: none; }
+  .filter-bar input, .filter-bar select { width: auto; min-width: 120px; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; justify-content: center; align-items: center; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #fff; border-radius: 12px; padding: 24px; width: 420px; max-width: 90vw; max-height: 80vh; overflow: auto; }
+  .modal h3 { margin-bottom: 16px; }
+
+  .key-display { background: #0f172a; color: #4ade80; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 14px; word-break: break-all; margin: 8px 0; }
+</style>
+</head>
+<body>
+  <h1>AI Gateway 管理後台 <span class="badge badge-green">Phase 6</span></h1>
+  <p class="sub">需以 ADMIN 角色的 API Key 認證。所有操作均留稽核紀錄。</p>
+
+  <div class="card" style="padding:12px 20px;">
+    <label style="margin:0 0 4px;">API Key（ADMIN）</label>
+    <input type="text" id="apiKey" placeholder="請輸入 ADMIN API Key">
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="tab-usage">用量報表</button>
+    <button class="tab-btn" data-tab="tab-keys">API Key 管理</button>
+    <button class="tab-btn" data-tab="tab-audit">稽核紀錄</button>
+    <button class="tab-btn" data-tab="tab-rag">RAG 文件</button>
+    <button class="tab-btn" data-tab="tab-kb-settings">知識庫設定</button>
+    <button class="tab-btn" data-tab="tab-agent-settings">ERP AI 設定</button>
+    <button class="tab-btn" data-tab="tab-status">系統狀態</button>
+  </div>
+
+  <!-- ==================== Tab 1: 用量報表 ==================== -->
+  <div id="tab-usage" class="tab-panel active">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <label style="margin:0;">用量總覽</label>
+        <button class="btn-sm btn-outline" onclick="loadUsage()" style="margin-top:0;">重新整理</button>
+      </div>
+      <div class="stat-grid" id="usageStats" style="margin-top:12px;">
+        <div class="empty-msg">載入中…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>依模型用量</label>
+      <div class="bar-chart" id="modelChart" style="margin-bottom:28px;"></div>
+    </div>
+
+    <div class="card">
+      <label>Router 健康狀態</label>
+      <div id="routerStats" style="margin-top:8px;"><div class="empty-msg">載入中…</div></div>
+    </div>
+  </div>
+
+  <!-- ==================== Tab 2: API Key 管理 ==================== -->
+  <div id="tab-keys" class="tab-panel">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <label style="margin:0;">API Key 列表</label>
+        <div>
+          <button class="btn-sm btn-outline" onclick="loadKeys()" style="margin-top:0;">重新整理</button>
+          <button class="btn-sm btn-success" onclick="showCreateKey()" style="margin-top:0;margin-left:8px;">新增 Key</button>
+        </div>
+      </div>
+      <table style="margin-top:12px;">
+        <thead>
+          <tr><th>ID</th><th>名稱</th><th>Key</th><th>角色</th><th>狀態</th><th>每日上限</th><th>每分上限</th><th>今日用量</th><th>操作</th></tr>
+        </thead>
+        <tbody id="keysTable"><tr><td colspan="9" class="empty-msg">載入中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== Tab 3: 稽核紀錄 ==================== -->
+  <div id="tab-audit" class="tab-panel">
+    <div class="card">
+      <label>篩選條件</label>
+      <div class="filter-bar" style="margin-top:8px;">
+        <div><label style="margin:0 0 4px;">Client ID</label><input type="number" id="auditClientId" placeholder="全部" style="width:100px;"></div>
+        <div><label style="margin:0 0 4px;">使用者</label><input type="text" id="auditAppUsername" placeholder="帳號或 ID" style="width:140px;"></div>
+        <div><label style="margin:0 0 4px;">模型</label><input type="text" id="auditModel" placeholder="全部" style="width:180px;"></div>
+        <div><label style="margin:0 0 4px;">起始日</label><input type="text" id="auditDateFrom" placeholder="YYYY-MM-DD" style="width:140px;"></div>
+        <div><label style="margin:0 0 4px;">結束日</label><input type="text" id="auditDateTo" placeholder="YYYY-MM-DD" style="width:140px;"></div>
+        <div><button class="btn-sm btn-success" onclick="loadAudit(0)" style="margin-top:18px;">查詢</button></div>
+      </div>
+
+      <table style="margin-top:16px;">
+        <thead>
+          <tr><th>ID</th><th>Request ID</th><th>使用者</th><th>Client</th><th>Endpoint</th><th>Model</th><th>Prompt Tokens</th><th>Completion Tokens</th><th>Latency</th><th>Status</th><th>時間</th><th>操作</th></tr>
+        </thead>
+        <tbody id="auditTable"><tr><td colspan="12" class="empty-msg">請輸入篩選條件後查詢</td></tr></tbody>
+      </table>
+      <div class="page-btns" id="auditPages"></div>
+    </div>
+  </div>
+
+  <!-- ==================== Tab 4: RAG 文件 ==================== -->
+  <div id="tab-rag" class="tab-panel">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <label style="margin:0;">已擷取文件</label>
+        <button class="btn-sm btn-outline" onclick="loadRagDocs()" style="margin-top:0;">重新整理</button>
+      </div>
+      <table style="margin-top:12px;">
+        <thead>
+          <tr><th>文件 ID</th><th>檔名</th><th>Chunks</th><th>建立時間</th><th>操作</th></tr>
+        </thead>
+        <tbody id="ragDocsTable"><tr><td colspan="5" class="empty-msg">載入中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== Tab 5: 知識庫設定 ==================== -->
+  <div id="tab-kb-settings" class="tab-panel">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <label style="margin:0;">知識庫問答設定</label>
+        <button class="btn-sm btn-outline" onclick="loadSettings()" style="margin-top:0;">重新整理</button>
+      </div>
+      <p class="meta">設定會即時套用至 RAG 問答，不需重啟服務。Temperature 越低回答越嚴格；Top K 控制最多引用幾個來源；Min Score 低於門檻的來源會被排除，0 代表不啟用門檻。</p>
+      <div class="row">
+        <div>
+          <label>Temperature</label>
+          <input type="number" id="setTemperature" min="0" max="2" step="0.1" placeholder="0.1">
+        </div>
+        <div>
+          <label>Top K</label>
+          <input type="number" id="setTopK" min="1" max="10" step="1" placeholder="3">
+        </div>
+        <div>
+          <label>Min Score</label>
+          <input type="number" id="setMinScore" min="0" max="1" step="0.01" placeholder="0">
+        </div>
+      </div>
+      <p class="meta" id="settingsSource">載入中…</p>
+      <button id="settingsSaveBtn" type="button" onclick="saveSettings()">儲存設定</button>
+      <p id="settingsStatus" class="meta" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- ==================== Tab 6: ERP AI 設定 ==================== -->
+  <div id="tab-agent-settings" class="tab-panel">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <label style="margin:0;">ERP AI 對話設定</label>
+        <button class="btn-sm btn-outline" onclick="loadAgentSettings()" style="margin-top:0;">重新整理</button>
+      </div>
+      <p class="meta">設定會即時套用至 ERP AI，不需重啟服務。Temperature 越低回覆越穩定；最大工具輪數控制 Agent 最多查詢幾輪；Knowledge Top K／Min Score 控制 Agent 呼叫知識庫時引用幾個片段與最低相似度門檻。</p>
+      <div class="row">
+        <div>
+          <label>Temperature</label>
+          <input type="number" id="agentTemperature" min="0" max="2" step="0.1" placeholder="0.2">
+        </div>
+        <div>
+          <label>最大工具輪數</label>
+          <input type="number" id="agentMaxRounds" min="1" max="10" step="1" placeholder="8">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Knowledge Top K</label>
+          <input type="number" id="agentRagTopK" min="1" max="10" step="1" placeholder="5">
+        </div>
+        <div>
+          <label>Knowledge Min Score</label>
+          <input type="number" id="agentRagMinScore" min="0" max="1" step="0.01" placeholder="0">
+        </div>
+      </div>
+      <p class="meta" id="agentSettingsSource">載入中…</p>
+      <button id="agentSettingsSaveBtn" type="button" onclick="saveAgentSettings()">儲存設定</button>
+      <p id="agentSettingsStatus" class="meta" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- ==================== Tab 7: 系統狀態 ==================== -->
+  <div id="tab-status" class="tab-panel">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <label style="margin:0;">系統狀態</label>
+        <button class="btn-sm btn-outline" onclick="loadStatus()" style="margin-top:0;">重新整理</button>
+      </div>
+      <div id="statusContent" style="margin-top:12px;"><div class="empty-msg">載入中…</div></div>
+    </div>
+  </div>
+
+  <!-- ==================== Modal: 新增 Key ==================== -->
+  <div class="modal-overlay" id="createKeyModal">
+    <div class="modal">
+      <h3>新增 API Key</h3>
+      <label>客戶名稱</label>
+      <input type="text" id="newKeyName" placeholder="例：開發測試">
+      <label>角色</label>
+      <select id="newKeyRole" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;">
+        <option value="USER">USER</option>
+        <option value="ADMIN">ADMIN</option>
+      </select>
+      <div class="row">
+        <div>
+          <label>每日上限（0=無限）</label>
+          <input type="number" id="newKeyDaily" value="0">
+        </div>
+        <div>
+          <label>每分上限（0=無限）</label>
+          <input type="number" id="newKeyPerMin" value="0">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn-sm btn-success" onclick="createKey()">建立</button>
+        <button class="btn-sm btn-outline" onclick="closeModal('createKeyModal')">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Modal: 顯示新 Key ==================== -->
+  <div class="modal-overlay" id="showKeyModal">
+    <div class="modal">
+      <h3>API Key 已建立</h3>
+      <p style="font-size:13px;color:#ef4444;font-weight:600;">此 Key 僅顯示一次，請立即複製保存！</p>
+      <div class="key-display" id="newKeyDisplay"></div>
+      <button class="btn-sm btn-outline" onclick="closeModal('showKeyModal')">關閉</button>
+    </div>
+  </div>
+
+  <!-- ==================== Modal: 編輯 Key ==================== -->
+  <div class="modal-overlay" id="editKeyModal">
+    <div class="modal">
+      <h3>編輯 API Key <span id="editKeyId"></span></h3>
+      <label>啟用狀態</label>
+      <select id="editKeyEnabled" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;">
+        <option value="true">啟用</option>
+        <option value="false">停用</option>
+      </select>
+      <div class="row">
+        <div>
+          <label>每日上限（0=無限）</label>
+          <input type="number" id="editKeyDaily" value="0">
+        </div>
+        <div>
+          <label>每分上限（0=無限）</label>
+          <input type="number" id="editKeyPerMin" value="0">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn-sm btn-success" onclick="updateKey()">儲存</button>
+        <button class="btn-sm btn-outline" onclick="closeModal('editKeyModal')">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Modal: 稽核詳情 ==================== -->
+  <div class="modal-overlay" id="auditDetailModal">
+    <div class="modal" style="width:860px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="margin:0;">稽核詳情 #<span id="auditDetailId"></span></h3>
+        <button class="btn-sm btn-outline" style="margin-top:0;" onclick="closeModal('auditDetailModal')">關閉</button>
+      </div>
+      <div id="auditDetailMeta" style="font-size:13px;color:#334155;line-height:1.7;margin-bottom:16px;"></div>
+      <div id="auditDetailBody"><div class="empty-msg">載入中…</div></div>
+    </div>
+  </div>
+
+<script>
+const $ = id => document.getElementById(id);
+const BASE = location.pathname.replace(/\/[^\/]*$/, '');
+const API_KEY_INPUT = $('apiKey');
+
+try { const saved = localStorage.getItem('gwAdminKey'); if (saved) API_KEY_INPUT.value = saved; } catch(e){}
+API_KEY_INPUT.addEventListener('change', () => { try { localStorage.setItem('gwAdminKey', API_KEY_INPUT.value); } catch(e){} });
+
+function getKey() { return API_KEY_INPUT.value.trim(); }
+function headers() { return { 'X-API-Key': getKey(), 'Content-Type': 'application/json' }; }
+
+// ─── Tab switching ───
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $(btn.dataset.tab).classList.add('active');
+    // auto-load
+    const tab = btn.dataset.tab;
+    if (tab === 'tab-usage') loadUsage();
+    else if (tab === 'tab-keys') loadKeys();
+    else if (tab === 'tab-rag') loadRagDocs();
+    else if (tab === 'tab-kb-settings') loadSettings();
+    else if (tab === 'tab-agent-settings') loadAgentSettings();
+    else if (tab === 'tab-status') loadStatus();
+  });
+});
+
+// ─── Modal ───
+function closeModal(id) { $(id).classList.remove('show'); }
+
+// ─── Usage ───
+async function loadUsage() {
+  if (!getKey()) { $('usageStats').innerHTML = '<div class="empty-msg">請先填入 API Key</div>'; return; }
+  try {
+    const resp = await fetch(BASE + '/api/v1/usage/report?days=30', { headers: headers() });
+    if (!resp.ok) { $('usageStats').innerHTML = `<div class="empty-msg">HTTP ${resp.status}</div>`; return; }
+    const data = await resp.json();
+
+    // Stats
+    const totals = data.totals || {};
+    const totalReqs = totals.totalRequests || 0;
+    const totalTokens = (totals.totalPromptTokens || 0) + (totals.totalCompletionTokens || 0);
+    const avgLatency = totals.avgLatencyMs || 0;
+    const models = data.byModel?.models || [];
+
+    $('usageStats').innerHTML = `
+      <div class="stat-card"><div class="stat-value">${totalReqs}</div><div class="stat-label">總請求數</div></div>
+      <div class="stat-card"><div class="stat-value">${fmtNum(totalTokens)}</div><div class="stat-label">總 Tokens</div></div>
+      <div class="stat-card"><div class="stat-value">${avgLatency}ms</div><div class="stat-label">平均延遲</div></div>
+      <div class="stat-card"><div class="stat-value">${models.length}</div><div class="stat-label">使用模型數</div></div>
+    `;
+
+    // Bar chart
+    const chart = $('modelChart');
+    if (!models.length) { chart.innerHTML = '<div class="empty-msg">無使用資料</div>'; return; }
+    const maxReqs = Math.max(...models.map(m => m.totalRequests || 0), 1);
+    chart.innerHTML = models.map(m => {
+      const h = Math.max(((m.totalRequests || 0) / maxReqs) * 140, 4);
+      return `<div class="bar" style="height:${h}px;">
+        <div class="bar-value">${m.totalRequests}</div>
+        <div class="bar-label">${esc(trunc(m.model, 20))}</div>
+      </div>`;
+    }).join('');
+
+    // Router
+    const router = data.routerStats || {};
+    const routerHtml = Object.values(router).filter(r => r.name).map(r => `
+      <div style="display:inline-flex;align-items:center;gap:8px;margin-right:16px;margin-bottom:8px;">
+        <span class="badge ${r.circuitOpen ? 'badge-red' : 'badge-green'}">${r.circuitOpen ? 'CIRCUIT OPEN' : 'HEALTHY'}</span>
+        <strong>${esc(r.name)}</strong>
+        <span style="font-size:12px;color:#6c757d;">OK=${r.successCount} FAIL=${r.failureCount}</span>
+      </div>
+    `).join('');
+    $('routerStats').innerHTML = routerHtml || '<div class="empty-msg">無 Router 資料</div>';
+  } catch (e) {
+    $('usageStats').innerHTML = `<div class="empty-msg">錯誤：${esc(String(e))}</div>`;
+  }
+}
+
+// ─── Keys ───
+async function loadKeys() {
+  if (!getKey()) { $('keysTable').innerHTML = '<tr><td colspan="9" class="empty-msg">請先填入 API Key</td></tr>'; return; }
+  try {
+    const resp = await fetch(BASE + '/api/v1/admin/keys', { headers: headers() });
+    if (!resp.ok) { $('keysTable').innerHTML = `<tr><td colspan="9" class="empty-msg">HTTP ${resp.status}</td></tr>`; return; }
+    const data = await resp.json();
+    const keys = data.keys || [];
+    if (!keys.length) { $('keysTable').innerHTML = '<tr><td colspan="9" class="empty-msg">無 API Key</td></tr>'; return; }
+    $('keysTable').innerHTML = keys.map(k => `
+      <tr>
+        <td>${k.id}</td>
+        <td>${esc(k.clientName)}</td>
+        <td><code>${esc(k.keyPreview)}</code></td>
+        <td><span class="badge ${k.role === 'ADMIN' ? 'badge-yellow' : ''}">${k.role}</span></td>
+        <td><span class="badge ${k.enabled ? 'badge-green' : 'badge-red'}">${k.enabled ? '啟用' : '停用'}</span></td>
+        <td>${k.rateLimitDaily || '∞'}</td>
+        <td>${k.rateLimitPerMin || '∞'}</td>
+        <td>${k.todayRequests}</td>
+        <td>
+          <button class="btn-sm btn-outline" onclick="showEditKey(${k.id},${k.enabled},${k.rateLimitDaily},${k.rateLimitPerMin})" style="margin-top:0;margin-right:4px;">編輯</button>
+          <button class="btn-sm btn-danger" onclick="deleteKey(${k.id},'${esc(k.clientName)}')" style="margin-top:0;">刪除</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    $('keysTable').innerHTML = `<tr><td colspan="9" class="empty-msg">錯誤：${esc(String(e))}</td></tr>`;
+  }
+}
+
+function showCreateKey() {
+  $('newKeyName').value = '';
+  $('newKeyRole').value = 'USER';
+  $('newKeyDaily').value = '0';
+  $('newKeyPerMin').value = '0';
+  $('createKeyModal').classList.add('show');
+}
+
+async function createKey() {
+  const name = $('newKeyName').value.trim();
+  if (!name) { alert('請輸入客戶名稱'); return; }
+  try {
+    const resp = await fetch(BASE + '/api/v1/admin/keys', {
+      method: 'POST', headers: headers(),
+      body: JSON.stringify({
+        clientName: name,
+        role: $('newKeyRole').value,
+        rateLimitDaily: parseInt($('newKeyDaily').value) || 0,
+        rateLimitPerMin: parseInt($('newKeyPerMin').value) || 0
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok) { alert(data.message || '建立失敗'); return; }
+    closeModal('createKeyModal');
+    $('newKeyDisplay').textContent = data.apiKey;
+    $('showKeyModal').classList.add('show');
+    loadKeys();
+  } catch (e) { alert('錯誤：' + e); }
+}
+
+let editingKeyId = null;
+function showEditKey(id, enabled, daily, perMin) {
+  editingKeyId = id;
+  $('editKeyId').textContent = '#' + id;
+  $('editKeyEnabled').value = enabled ? 'true' : 'false';
+  $('editKeyDaily').value = daily || 0;
+  $('editKeyPerMin').value = perMin || 0;
+  $('editKeyModal').classList.add('show');
+}
+
+async function updateKey() {
+  try {
+    const resp = await fetch(BASE + '/api/v1/admin/keys/' + editingKeyId, {
+      method: 'PATCH', headers: headers(),
+      body: JSON.stringify({
+        enabled: $('editKeyEnabled').value === 'true',
+        rateLimitDaily: parseInt($('editKeyDaily').value) || 0,
+        rateLimitPerMin: parseInt($('editKeyPerMin').value) || 0
+      })
+    });
+    if (!resp.ok) { alert('更新失敗'); return; }
+    closeModal('editKeyModal');
+    loadKeys();
+  } catch (e) { alert('錯誤：' + e); }
+}
+
+async function deleteKey(id, name) {
+  if (!confirm(`確定要刪除 API Key #${id}（${name}）嗎？`)) return;
+  try {
+    const resp = await fetch(BASE + '/api/v1/admin/keys/' + id, { method: 'DELETE', headers: headers() });
+    if (!resp.ok) { alert('刪除失敗'); return; }
+    loadKeys();
+  } catch (e) { alert('錯誤：' + e); }
+}
+
+// ─── Audit ───
+let auditPage = 0;
+async function loadAudit(page) {
+  auditPage = page || 0;
+  if (!getKey()) { $('auditTable').innerHTML = '<tr><td colspan="12" class="empty-msg">請先填入 API Key</td></tr>'; return; }
+  const params = new URLSearchParams();
+  const clientId = $('auditClientId').value.trim();
+  const appUsername = $('auditAppUsername').value.trim();
+  const model = $('auditModel').value.trim();
+  const dateFrom = $('auditDateFrom').value.trim();
+  const dateTo = $('auditDateTo').value.trim();
+  if (clientId) params.set('clientId', clientId);
+  if (appUsername) params.set('appUsername', appUsername);
+  if (model) params.set('model', model);
+  if (dateFrom) params.set('dateFrom', dateFrom);
+  if (dateTo) params.set('dateTo', dateTo);
+  params.set('page', auditPage);
+  params.set('size', 50);
+
+  try {
+    const resp = await fetch(BASE + '/api/v1/admin/audit?' + params, { headers: headers() });
+    if (!resp.ok) { $('auditTable').innerHTML = `<tr><td colspan="12" class="empty-msg">HTTP ${resp.status}</td></tr>`; return; }
+    const data = await resp.json();
+    const records = data.records || [];
+    if (!records.length) { $('auditTable').innerHTML = '<tr><td colspan="12" class="empty-msg">無紀錄</td></tr>'; $('auditPages').innerHTML = ''; return; }
+    $('auditTable').innerHTML = records.map(r => `
+      <tr>
+        <td>${r.id}</td>
+        <td><code style="font-size:11px;">${esc((r.requestId||'').substring(0,12))}…</code></td>
+        <td>${esc(r.appUsername || '-')}</td>
+        <td>${r.clientId} ${esc(r.clientName||'')}</td>
+        <td>${esc(r.endpoint||'')}</td>
+        <td style="font-size:12px;">${esc(trunc(r.model,25))}</td>
+        <td>${r.promptTokens}</td>
+        <td>${r.completionTokens}</td>
+        <td>${r.latencyMs}ms</td>
+        <td><span class="badge ${r.statusCode===200?'badge-green':'badge-red'}">${r.statusCode}</span></td>
+        <td style="font-size:12px;">${esc(r.createdAt||'')}</td>
+        <td><button class="btn-sm btn-outline" style="margin-top:0;" onclick="openAuditDetail(${r.id})">查看</button></td>
+      </tr>
+    `).join('');
+
+    // Pages
+    const totalPages = Math.ceil(data.total / data.size);
+    let pageHtml = '';
+    for (let i = 0; i < totalPages && i < 20; i++) {
+      pageHtml += `<button class="page-btn ${i===auditPage?'active':''}" onclick="loadAudit(${i})">${i+1}</button>`;
+    }
+    $('auditPages').innerHTML = pageHtml;
+  } catch (e) {
+    $('auditTable').innerHTML = `<tr><td colspan="12" class="empty-msg">錯誤：${esc(String(e))}</td></tr>`;
+  }
+}
+
+async function openAuditDetail(id) {
+  $('auditDetailId').textContent = id;
+  $('auditDetailMeta').textContent = '載入中…';
+  $('auditDetailBody').innerHTML = '';
+  $('auditDetailModal').classList.add('show');
+  try {
+    const resp = await fetch(BASE + '/api/v1/admin/audit/' + encodeURIComponent(id), { headers: headers() });
+    if (!resp.ok) {
+      $('auditDetailMeta').textContent = 'HTTP ' + resp.status;
+      return;
+    }
+    const d = await resp.json();
+    const user = d.appUsername
+      ? `${esc(d.appUsername)}（ID ${esc(String(d.appUserId ?? '-'))}）`
+      : '未提供（非 CharPhone 請求）';
+    $('auditDetailMeta').innerHTML = `
+      <div>使用者：${user}</div>
+      <div>Client：${esc(String(d.clientId ?? '-'))} ${esc(d.clientName || '')}</div>
+      <div>Endpoint：<code>${esc(d.endpoint || '')}</code>　模型：<code>${esc(d.model || '')}</code>　Session：<code>${esc(d.appSessionId || '-')}</code></div>
+      <div>Request ID：<code>${esc(d.requestId || '')}</code></div>
+      <div>時間：${esc(d.createdAt || '')}　Latency：${esc(String(d.latencyMs ?? '-'))}ms　Tokens：${esc(String(d.promptTokens ?? 0))} + ${esc(String(d.completionTokens ?? 0))}　Status：${esc(String(d.statusCode ?? '-'))}</div>`;
+    const tools = d.toolCalls || [];
+    const toolHtml = tools.length ? tools.map(t => `
+      <div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-top:8px;">
+        <div style="font-size:12px;color:#64748b;">#${esc(String(t.id ?? ''))} ${esc(t.endpoint || '')} · ${esc(String(t.latencyMs ?? '-'))}ms · HTTP ${esc(String(t.statusCode ?? '-'))}</div>
+        <div style="font-size:12px;font-weight:600;margin-top:6px;">參數</div>
+        <pre style="white-space:pre-wrap;word-break:break-word;font-size:12px;background:#f8fafc;padding:8px;border-radius:6px;max-height:160px;overflow:auto;">${esc(t.args || '')}</pre>
+        <div style="font-size:12px;font-weight:600;">結果摘要</div>
+        <pre style="white-space:pre-wrap;word-break:break-word;font-size:12px;background:#f8fafc;padding:8px;border-radius:6px;max-height:160px;overflow:auto;">${esc(t.result || '')}</pre>
+      </div>`).join('') : '<div class="empty-msg" style="padding:12px 0;">此請求沒有工具呼叫</div>';
+    $('auditDetailBody').innerHTML = `
+      <label style="margin-top:0;">使用者問題</label>
+      <pre style="white-space:pre-wrap;word-break:break-word;font-size:13px;background:#f8fafc;padding:12px;border-radius:8px;max-height:220px;overflow:auto;">${esc(d.prompt || '（無）')}</pre>
+      <label>AI 回答</label>
+      <pre style="white-space:pre-wrap;word-break:break-word;font-size:13px;background:#f8fafc;padding:12px;border-radius:8px;max-height:320px;overflow:auto;">${esc(d.response || '（無）')}</pre>
+      <label>工具呼叫（${tools.length}）</label>
+      ${toolHtml}`;
+  } catch (e) {
+    $('auditDetailMeta').textContent = '錯誤：' + e;
+  }
+}
+
+// ─── RAG Docs ───
+async function loadRagDocs() {
+  if (!getKey()) { $('ragDocsTable').innerHTML = '<tr><td colspan="5" class="empty-msg">請先填入 API Key</td></tr>'; return; }
+  try {
+    const resp = await fetch(BASE + '/api/v1/admin/rag/docs', { headers: headers() });
+    if (!resp.ok) { $('ragDocsTable').innerHTML = `<tr><td colspan="5" class="empty-msg">HTTP ${resp.status}</td></tr>`; return; }
+    const data = await resp.json();
+    const docs = data.documents || [];
+    if (!docs.length) { $('ragDocsTable').innerHTML = '<tr><td colspan="5" class="empty-msg">知識庫中無文件</td></tr>'; return; }
+    $('ragDocsTable').innerHTML = docs.map(d => `
+      <tr>
+        <td><code style="font-size:11px;">${esc((d.doc_id||'').substring(0,12))}…</code></td>
+        <td>${esc(d.filename||'')}</td>
+        <td>${d.chunks||0}</td>
+        <td style="font-size:12px;">${esc(d.created_at||'')}</td>
+        <td><button class="btn-sm btn-danger" onclick="deleteRagDoc('${esc(d.doc_id)}')" style="margin-top:0;">刪除</button></td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    $('ragDocsTable').innerHTML = `<tr><td colspan="5" class="empty-msg">錯誤：${esc(String(e))}</td></tr>`;
+  }
+}
+
+async function deleteRagDoc(docId) {
+  if (!confirm(`確定要刪除文件 ${docId} 嗎？`)) return;
+  try {
+    const resp = await fetch(BASE + '/api/v1/admin/rag/docs/' + encodeURIComponent(docId), {
+      method: 'DELETE', headers: headers()
+    });
+    if (!resp.ok) { alert('刪除失敗'); return; }
+    loadRagDocs();
+  } catch (e) { alert('錯誤：' + e); }
+}
+
+// ─── Knowledge Settings ───
+function settingsSourceLabel(source) {
+  if (source === 'database') return '資料庫';
+  if (source === 'environment') return '環境變數';
+  return '預設值';
+}
+
+function applySettings(data) {
+  const rag = (data && data.rag) || {};
+  const temperature = rag.temperature || {};
+  const topK = rag.topK || {};
+  const minScore = rag.minScore || {};
+  $('setTemperature').value = temperature.value != null ? temperature.value : '';
+  $('setTopK').value = topK.value != null ? topK.value : '';
+  $('setMinScore').value = minScore.value != null ? minScore.value : '';
+  $('settingsSource').textContent = '目前來源：Temperature=' + settingsSourceLabel(temperature.source)
+    + '、Top K=' + settingsSourceLabel(topK.source)
+    + '、Min Score=' + settingsSourceLabel(minScore.source);
+}
+
+async function loadSettings() {
+  if (!getKey()) {
+    $('settingsSource').textContent = '請先填入 API Key';
+    return;
+  }
+  try {
+    const resp = await fetch(BASE + '/api/v1/admin/settings', { headers: headers() });
+    if (!resp.ok) {
+      $('settingsSource').textContent = `載入失敗：HTTP ${resp.status}`;
+      return;
+    }
+    applySettings(await resp.json());
+  } catch (e) {
+    $('settingsSource').textContent = '載入失敗：' + e;
+  }
+}
+
+async function saveSettings() {
+  const temperature = $('setTemperature').value.trim();
+  const topK = $('setTopK').value.trim();
+  const minScore = $('setMinScore').value.trim();
+  if (!temperature || !topK || !minScore) {
+    $('settingsStatus').textContent = '三個欄位都必須填寫。';
+    return;
+  }
+
+  const btn = $('settingsSaveBtn');
+  btn.disabled = true;
+  $('settingsStatus').textContent = '儲存中…';
+  try {
+    const resp = await fetch(BASE + '/api/v1/admin/settings', {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({
+        temperature: Number(temperature),
+        topK: Number(topK),
+        minScore: Number(minScore)
+      })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      $('settingsStatus').textContent = '儲存失敗：' + (data.message || ('HTTP ' + resp.status));
+      return;
+    }
+    applySettings(data);
+    $('settingsStatus').textContent = '設定已儲存並立即生效。';
+  } catch (e) {
+    $('settingsStatus').textContent = '儲存失敗：' + e;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ─── ERP AI Settings ───
+function applyAgentSettings(data) {
+  const agent = (data && data.agent) || {};
+  const temperature = agent.temperature || {};
+  const maxRounds = agent.maxRounds || {};
+  const knowledgeTopK = agent.knowledgeTopK || {};
+  const knowledgeMinScore = agent.knowledgeMinScore || {};
+  $('agentTemperature').value = temperature.value != null ? temperature.value : '';
+  $('agentMaxRounds').value = maxRounds.value != null ? maxRounds.value : '';
+  $('agentRagTopK').value = knowledgeTopK.value != null ? knowledgeTopK.value : '';
+  $('agentRagMinScore').value = knowledgeMinScore.value != null ? knowledgeMinScore.value : '';
+  $('agentSettingsSource').textContent = '目前來源：Temperature=' + settingsSourceLabel(temperature.source)
+    + '、最大工具輪數=' + settingsSourceLabel(maxRounds.source)
+    + '、Knowledge Top K=' + settingsSourceLabel(knowledgeTopK.source)
+    + '、Knowledge Min Score=' + settingsSourceLabel(knowledgeMinScore.source);
+}
+
+async function loadAgentSettings() {
+  if (!getKey()) {
+    $('agentSettingsSource').textContent = '請先填入 API Key';
+    return;
+  }
+  try {
+    const resp = await fetch(BASE + '/api/v1/admin/agent-settings', { headers: headers() });
+    if (!resp.ok) {
+      $('agentSettingsSource').textContent = `載入失敗：HTTP ${resp.status}`;
+      return;
+    }
+    applyAgentSettings(await resp.json());
+  } catch (e) {
+    $('agentSettingsSource').textContent = '載入失敗：' + e;
+  }
+}
+
+async function saveAgentSettings() {
+  const temperature = $('agentTemperature').value.trim();
+  const maxRounds = $('agentMaxRounds').value.trim();
+  const knowledgeTopK = $('agentRagTopK').value.trim();
+  const knowledgeMinScore = $('agentRagMinScore').value.trim();
+  if (!temperature || !maxRounds || !knowledgeTopK || !knowledgeMinScore) {
+    $('agentSettingsStatus').textContent = '四個欄位都必須填寫。';
+    return;
+  }
+
+  const btn = $('agentSettingsSaveBtn');
+  btn.disabled = true;
+  $('agentSettingsStatus').textContent = '儲存中…';
+  try {
+    const resp = await fetch(BASE + '/api/v1/admin/agent-settings', {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({
+        temperature: Number(temperature),
+        maxRounds: Number(maxRounds),
+        knowledgeTopK: Number(knowledgeTopK),
+        knowledgeMinScore: Number(knowledgeMinScore)
+      })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      $('agentSettingsStatus').textContent = '儲存失敗：' + (data.message || ('HTTP ' + resp.status));
+      return;
+    }
+    applyAgentSettings(data);
+    $('agentSettingsStatus').textContent = '設定已儲存並立即生效。';
+  } catch (e) {
+    $('agentSettingsStatus').textContent = '儲存失敗：' + e;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ─── Status ───
+async function loadStatus() {
+  if (!getKey()) { $('statusContent').innerHTML = '<div class="empty-msg">請先填入 API Key</div>'; return; }
+  try {
+    const resp = await fetch(BASE + '/api/v1/admin/status', { headers: headers() });
+    if (!resp.ok) { $('statusContent').innerHTML = `<div class="empty-msg">HTTP ${resp.status}</div>`; return; }
+    const data = await resp.json();
+
+    let html = '';
+
+    // DB
+    const db = data.db || {};
+    html += `<div class="card" style="margin-bottom:12px;">
+      <strong>資料庫</strong>
+      <span class="badge ${db.status==='UP'?'badge-green':'badge-red'}" style="margin-left:8px;">${db.status}</span>
+      <div style="margin-top:8px;font-size:13px;color:#334155;">
+        API Clients: ${db.apiClients||0}　
+        Audit Log: ${db.auditLogRecords||0}　
+        Tool Audit: ${db.toolAuditRecords||0}
+      </div>
+    </div>`;
+
+    // Model
+    const model = data.model || {};
+    html += `<div class="card" style="margin-bottom:12px;">
+      <strong>模型</strong>
+      <div style="margin-top:8px;font-size:13px;color:#334155;">
+        Active: <code>${esc(model.active||'')}</code>　Provider: <code>${esc(model.provider||'')}</code>　Router: ${model.router}
+      </div>`;
+    const stats = model.stats || {};
+    Object.values(stats).filter(s => s.name).forEach(s => {
+      html += `<div style="margin-top:6px;font-size:13px;">
+        <span class="badge ${s.circuitOpen?'badge-red':'badge-green'}">${s.circuitOpen?'OPEN':'OK'}</span>
+        <strong>${esc(s.name)}</strong>
+        <span style="color:#6c757d;margin-left:8px;">OK=${s.successCount} FAIL=${s.failureCount}</span>
+      </div>`;
+    });
+    html += '</div>';
+
+    // Rate Limit
+    const rl = data.rateLimit || {};
+    html += `<div class="card" style="margin-bottom:12px;">
+      <strong>限流</strong>
+      <span class="badge ${rl.enabled?'badge-green':'badge-yellow'}" style="margin-left:8px;">${rl.enabled?'啟用':'停用'}</span>
+      <div style="margin-top:8px;font-size:13px;color:#334155;">
+        每日預設: ${rl.defaultDaily||'∞'}　每分預設: ${rl.defaultPerMin||'∞'}
+      </div>
+    </div>`;
+
+    $('statusContent').innerHTML = html;
+  } catch (e) {
+    $('statusContent').innerHTML = `<div class="empty-msg">錯誤：${esc(String(e))}</div>`;
+  }
+}
+
+// ─── helpers ───
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function trunc(s, n) { return s && s.length > n ? s.substring(0, n) + '…' : s; }
+function fmtNum(n) { return n == null ? '0' : n.toLocaleString(); }
+</script>
+</body>
+</html>

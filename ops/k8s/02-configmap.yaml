@@ -1,0 +1,30 @@
+# 非機密環境值；密碼與 API Key 在 03-secret.yaml。
+# 套用：kubectl apply -f 02-configmap.yaml -n ai-gateway
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  labels:
+    app: ai-gateway
+data:
+  # Gateway 主資料源（aigateway），host 使用 Service 名稱 mysql
+  SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/aigateway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Taipei&characterEncoding=utf-8&useUnicode=true"
+  SPRING_DATASOURCE_USERNAME: "aigateway_app"
+  # 業務 DB（mydb，AI 工具查詢用）
+  MYDB_URL: "jdbc:mysql://mysql:3306/mydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Taipei&characterEncoding=utf-8&useUnicode=true"
+  MYDB_USER: "aigateway_ro"
+  # 供應商 / 模型
+  GATEWAY_PROVIDER: "gemini"
+  GATEWAY_FALLBACK_PROVIDERS: ""
+  # 限流
+  GATEWAY_RATE_LIMIT_ENABLED: "false"
+  GATEWAY_RATE_LIMIT_DAILY: "500"
+  GATEWAY_RATE_LIMIT_PER_MIN: "30"
+  # Secret 檔案路徑（由 03-secret.yaml 掛載）
+  GEMINI_API_KEY_FILE: "/run/secrets/gemini-key"
+  OPENAI_COMPAT_API_KEY_FILE: "/run/secrets/openrouter-key"
+  # Embedded Solr 與 RAG 儲存
+  GATEWAY_SOLR_HOME: "/usr/local/tomcat/solrhome"
+  RAG_STORAGE_DIR: "/usr/local/tomcat/rag-docs"
+  # JVM
+  CATALINA_OPTS: "-Dfile.encoding=UTF-8 -Xms128m -Xmx512m -XX:MaxMetaspaceSize=256m"

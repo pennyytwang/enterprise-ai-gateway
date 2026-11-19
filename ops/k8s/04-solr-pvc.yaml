@@ -1,0 +1,16 @@
+# Solr 持久化（容器內路徑 /usr/local/tomcat/solrhome）
+# storageClassName 留空 = 用 default StorageClass（本機是 rancher.io/local-path）
+# 學習點：砍 Pod 資料不消失 ← Deployment 重建的是「新 Pod 連同一塊 PVC」
+# 套用：kubectl apply -f 04-solr-pvc.yaml -n ai-gateway
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: solr-pvc
+  labels:
+    app: ai-gateway
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

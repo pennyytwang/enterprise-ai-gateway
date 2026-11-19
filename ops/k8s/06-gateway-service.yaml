@@ -1,0 +1,20 @@
+# Gateway Service（本機以 127.0.0.1:8081:8080 對外）
+#   k8s 用 label selector 找 Pod；Pod 重建 IP 變了 Service 照樣指得到
+# 存取方式（本機練習，Docker Desktop 無 IngressController）：
+#   kubectl port-forward svc/ai-gateway -n ai-gateway 8081:8080
+#   curl http://localhost:8081/api/v1/health
+# 套用：kubectl apply -f 06-gateway-service.yaml -n ai-gateway
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-gateway
+  labels:
+    app: ai-gateway
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-gateway
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP

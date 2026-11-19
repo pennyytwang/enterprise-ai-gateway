@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Gateway 測試台</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; background: #f4f6fb; color: #1a1a2e; padding: 24px; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .sub { color: #6c757d; font-size: 13px; margin-bottom: 20px; }
+  .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.06); padding: 20px; margin-bottom: 20px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 6px; }
+  input[type=text], textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: inherit; }
+  textarea { min-height: 80px; resize: vertical; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  button { margin-top: 16px; padding: 12px 24px; background: linear-gradient(135deg,#4361ee,#3a56d4); color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-sm { margin-top: 8px; padding: 8px 16px; font-size: 13px; }
+  .btn-outline { background: transparent; color: #4361ee; border: 1.5px solid #4361ee; }
+  .btn-outline:hover { background: #eef2ff; }
+  .btn-danger { background: #ef4444; }
+  .btn-danger:hover { background: #dc2626; }
+  #status { font-size: 13px; color: #6c757d; margin: 12px 0 0; min-height: 18px; }
+  #output { white-space: pre-wrap; word-break: break-word; background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 16px; min-height: 120px; max-height: 400px; overflow: auto; font-size: 14px; line-height: 1.7; }
+  .meta { font-size: 12px; color: #94a3b8; margin-top: 8px; }
+  .steps { font-size: 13px; line-height: 1.9; color: #334155; }
+  .steps code { background: #eef2ff; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+  .badge { display:inline-block; background:#eef2ff; color:#4338ca; border-radius:6px; padding:2px 8px; font-size:12px; margin-left:6px; vertical-align:middle; }
+
+  /* Tab styles */
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; padding-bottom: 0; }
+  .tab-btn { padding: 10px 20px; font-size: 14px; font-weight: 600; background: transparent; color: #6c757d; border: none; border-bottom: 3px solid transparent; cursor: pointer; margin-bottom: -2px; transition: all .15s; }
+  .tab-btn:hover { color: #4361ee; }
+  .tab-btn.active { color: #4361ee; border-bottom-color: #4361ee; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* RAG styles */
+  .rag-doc-list { list-style: none; padding: 0; }
+  .rag-doc-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; font-size: 13px; }
+  .rag-doc-item .doc-info { flex: 1; }
+  .rag-doc-item .doc-name { font-weight: 600; }
+  .rag-doc-item .doc-meta { color: #6c757d; font-size: 12px; }
+  .rag-query-result { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-top: 8px; font-size: 13px; line-height: 1.6; }
+  .rag-query-result .score { color: #4361ee; font-weight: 600; }
+  .rag-query-result .seg { margin-top: 6px; color: #334155; }
+
+  /* Quick test buttons */
+  .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+  .preset-btn { padding: 14px 16px; background: #f8fafc; border: 1.5px solid #e0e0e0; border-radius: 10px; cursor: pointer; text-align: left; transition: all .15s; margin-top: 0; }
+  .preset-btn:hover { border-color: #4361ee; background: #eef2ff; }
+  .preset-btn .preset-tool { font-size: 11px; color: #4361ee; font-weight: 600; }
+  .preset-btn .preset-q { font-size: 14px; color: #1a1a2e; margin-top: 4px; }
+  .preset-result { background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 16px; min-height: 100px; max-height: 500px; overflow: auto; font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; margin-top: 12px; }
+  .preset-loading { color: #f59e0b; font-size: 13px; margin-top: 8px; }
+  .file-upload-area { border: 2px dashed #d1d5db; border-radius: 10px; padding: 24px; text-align: center; color: #6c757d; cursor: pointer; transition: border-color .15s; }
+  .file-upload-area:hover { border-color: #4361ee; }
+  .file-upload-area input[type=file] { display: none; }
+  .empty-msg { color: #9ca3af; font-size: 13px; text-align: center; padding: 20px; }
+</style>
+</head>
+<body>
+  <h1>AI Gateway 測試台 <span class="badge">Phase 4</span></h1>
+  <p class="sub">API Key 在資料表 api_client，雜湊寫入 api_key_hash。所有請求需帶 X-API-Key Header。</p>
+
+  <div class="card" style="padding:12px 20px;">
+    <label style="margin:0 0 4px;">API Key</label>
+    <input type="text" id="apiKey" placeholder="請輸入 API Key（不會存入網頁原始碼）">
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="tab-chat">對話測試</button>
+    <button class="tab-btn" data-tab="tab-rag">RAG 知識庫</button>
+    <button class="tab-btn" data-tab="tab-preset">Agent 快測</button>
+  </div>
+
+  <!-- ==================== Tab 1: 對話測試 ==================== -->
+  <div id="tab-chat" class="tab-panel active">
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>模式</label>
+          <select id="mode" style="width:100%; padding:10px 12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:14px;">
+            <option value="chat">一般對話（/chat）</option>
+            <option value="agent">Agent 模式（/agent/run，會呼叫 ERP 工具）</option>
+          </select>
+        </div>
+        <div>
+          <label>模型（留空 = 預設）</label>
+          <input type="text" id="model" placeholder="nvidia/nemotron-3-super-120b-a12b:free">
+        </div>
+      </div>
+      <label>使用者訊息</label>
+      <textarea id="message">用一句話說明你是誰，並簡單說明企業 AI Gateway 的用途。</textarea>
+      <label>System Prompt（可留空）</label>
+      <textarea id="systemPrompt"></textarea>
+      <div class="row">
+        <div style="max-width:200px;">
+          <label><input type="checkbox" id="stream"> 串流（SSE）</label>
+        </div>
+        <div style="max-width:220px;">
+          <label>Agent 最大工具輪數</label>
+          <input type="text" id="maxToolRounds" value="8">
+        </div>
+      </div>
+      <button id="send">送出</button>
+      <div id="status"></div>
+      <div class="meta" id="meta"></div>
+    </div>
+
+    <div class="card">
+      <label>回覆</label>
+      <div id="output">（等待請求…）</div>
+    </div>
+
+    <div class="card" id="toolCard" style="display:none;">
+      <label>工具呼叫紀錄（toolCalls）</label>
+      <div id="toolOutput" class="steps"></div>
+    </div>
+  </div>
+
+  <!-- ==================== Tab 2: RAG 知識庫 ==================== -->
+  <div id="tab-rag" class="tab-panel">
+    <div class="card">
+      <label>上傳文件到知識庫（可一次選多檔）</label>
+      <div class="file-upload-area" id="uploadArea">
+        <input type="file" id="ragFile" accept=".pdf,.docx,.txt,.md" multiple>
+        <p>點擊選擇或拖曳檔案（PDF / Word / TXT / MD，可多選）</p>
+        <p class="rag-file-list" id="ragFileName" style="margin-top:8px;font-weight:600;color:#1a1a2e;"></p>
+      </div>
+      <button class="btn-sm" id="ragIngestBtn">上傳並擷取</button>
+      <div id="ragIngestStatus" style="font-size:13px;color:#6c757d;margin-top:8px;min-height:18px;"></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <label style="margin:0;">已擷取文件</label>
+        <button class="btn-sm btn-outline" id="ragRefreshBtn" style="margin-top:0;">重新整理</button>
+      </div>
+      <ul class="rag-doc-list" id="ragDocList" style="margin-top:12px;">
+        <li class="empty-msg">載入中…</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <label>問答（AI 直接給出精確答案）</label>
+      <p style="font-size:12px;color:#6c757d;margin:0 0 8px;">問問題 → AI 讀懂知識庫後直接回答（會引用來源）。適合「8/28 收盤價多少？」這類要精確答案的問法。</p>
+      <input type="text" id="ragAskQuery" placeholder="例：光寶科 8/28 的成交資訊（收盤價）是多少？" style="margin-bottom:8px;">
+      <div class="row" style="align-items:flex-end;">
+        <div style="max-width:120px;">
+          <label>topK</label>
+          <input type="text" id="ragAskTopK" value="5">
+        </div>
+        <div style="flex:3;">
+          <button class="btn-sm" id="ragAskBtn">問答</button>
+        </div>
+      </div>
+      <div id="ragAskStatus" style="font-size:13px;color:#6c757d;margin-top:8px;"></div>
+      <div id="ragAskAnswer" class="rag-query-result" style="margin-top:8px;display:none;"></div>
+      <div id="ragAskSources" style="margin-top:8px;font-size:12px;color:#6c757d;"></div>
+    </div>
+
+    <div class="card">
+      <label>向量查詢（撈出原文片段）</label>
+      <p style="font-size:12px;color:#6c757d;margin:0 0 8px;">只把知識庫中語意最相關的「原文」撈出來給你看，不做總結。適合看原始出處。</p>
+      <input type="text" id="ragQuery" placeholder="例：公司的報價流程是什麼？" style="margin-bottom:8px;">
+      <div class="row" style="align-items:flex-end;">
+        <div style="max-width:120px;">
+          <label>topK</label>
+          <input type="text" id="ragTopK" value="5">
+        </div>
+        <div style="flex:3;">
+          <button class="btn-sm" id="ragQueryBtn">查詢</button>
+        </div>
+      </div>
+      <div id="ragQueryStatus" style="font-size:13px;color:#6c757d;margin-top:8px;"></div>
+      <div id="ragQueryResults"></div>
+    </div>
+  </div>
+
+  <!-- ==================== Tab 3: Agent 快測 ==================== -->
+  <div id="tab-preset" class="tab-panel">
+    <div class="card">
+      <label>一鍵測試（點選後自動送出 Agent 請求）</label>
+      <p style="font-size:12px;color:#6c757d;margin-bottom:12px;">每組問題對應特定工具，用來驗證 Agent 是否正確呼叫工具並回傳正確資料。</p>
+      <div class="preset-grid" id="presetGrid"></div>
+    </div>
+
+    <div class="card" id="presetResultCard" style="display:none;">
+      <label>回覆</label>
+      <div id="presetOutput" class="preset-result"></div>
+      <div class="meta" id="presetMeta"></div>
+      <div id="presetToolCard" style="margin-top:12px;">
+        <label>工具呼叫紀錄</label>
+        <div id="presetToolOutput" class="steps"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 驗證說明 ==================== -->
+  <div class="card steps">
+    <b>驗證方式</b><br>
+    <b>對話測試</b>：填 Key → 選模式 → 送出。Agent 模式回彙整答案 + toolCalls 明細。<br>
+    <b>RAG 知識庫</b>：可一次選多檔上傳（PDF/DOCX/TXT/MD）→ 用「向量查詢」搜相關問題 → 確認命中對應章節。<code>ops/payloads/test-rag-doc.txt</code> 可用來測「報價流程」。<br>
+    <b>Agent 快測</b>：切到「Agent 快測」Tab → 點按鈕自動送出 → 檢查回覆與工具呼叫紀錄。<br>
+    <b>稽核日誌</b>：<code>sudo docker exec jsp-mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" aigateway -e "SELECT id,endpoint,status_code,created_at FROM audit_log ORDER BY id DESC LIMIT 10;"'</code>
+  </div>
+
+<script>
+const $ = id => document.getElementById(id);
+const BASE = location.pathname.replace(/\/[^\/]*$/, '');
+const API_KEY_INPUT = $('apiKey');
+
+// ─── Tab switching ───
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $(btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ─── API Key persistence ───
+try { const saved = localStorage.getItem('gwApiKey'); if (saved) API_KEY_INPUT.value = saved; } catch(e){}
+API_KEY_INPUT.addEventListener('change', () => { try { localStorage.setItem('gwApiKey', API_KEY_INPUT.value); } catch(e){} });
+
+function getApiKey() { return API_KEY_INPUT.value.trim(); }
+function headers(extra) { return Object.assign({ 'X-API-Key': getApiKey(), 'Content-Type': 'application/json' }, extra || {}); }
+function jsonHeaders() { return { 'X-API-Key': getApiKey(), 'Content-Type': 'application/json' }; }
+
+async function readJson(resp) {
+  const raw = await resp.text();
+  try { return raw ? JSON.parse(raw) : {}; }
+  catch (e) {
+    return { message: `HTTP ${resp.status} 非 JSON 回應：${raw.slice(0, 300)}` };
+  }
+}
+
+// ─── Chat / Agent (Tab 1) ───
+$('send').addEventListener('click', send);
+$('mode').addEventListener('change', () => {
+  const agent = $('mode').value === 'agent';
+  $('stream').disabled = agent;
+  $('systemPrompt').disabled = agent;
+  $('model').disabled = agent;
+});
+
+async function send() {
+  const apiKey = getApiKey();
+  const mode = $('mode').value;
+  if (mode === 'agent') {
+    const userMessage = $('message').value.trim();
+    if (!userMessage) { $('status').textContent = '請輸入訊息'; return; }
+    const rounds = parseInt($('maxToolRounds').value, 10);
+    await agentRequest(apiKey, { userMessage, maxToolRounds: rounds > 0 ? rounds : 8 }, $('output'), $('status'), $('meta'), $('toolCard'), $('toolOutput'));
+    return;
+  }
+  const body = {
+    userMessage: $('message').value.trim(),
+    systemPrompt: $('systemPrompt').value.trim() || undefined,
+    stream: $('stream').checked
+  };
+  const model = $('model').value.trim();
+  if (model) body.model = model;
+  if (!body.userMessage) { $('status').textContent = '請輸入訊息'; return; }
+  const btn = $('send'); btn.disabled = true;
+  $('output').textContent = '…';
+  $('meta').textContent = '';
+  $('toolCard').style.display = 'none';
+  $('status').textContent = '請求中…';
+  try {
+    if (body.stream) {
+      await streamRequest(apiKey, body);
+    } else {
+      const resp = await fetch(BASE + '/api/v1/chat', { method: 'POST', headers: jsonHeaders(), body: JSON.stringify(body) });
+      const raw = await resp.text();
+      let data; try { data = JSON.parse(raw); } catch (e) { data = { message: raw }; }
+      if (!resp.ok) { $('status').textContent = `HTTP ${resp.status}`; $('output').textContent = JSON.stringify(data, null, 2); return; }
+      $('output').textContent = data.message;
+      $('meta').textContent = `requestId=${data.requestId}  provider=${data.usage?.provider}  model=${data.usage?.model}  tokens=${data.usage?.totalTokens}`;
+      $('status').textContent = `HTTP ${resp.status} OK`;
+    }
+  } catch (e) {
+    $('status').textContent = '錯誤';
+    $('output').textContent = String(e);
+  } finally { btn.disabled = false; }
+}
+
+async function agentRequest(apiKey, body, outEl, statusEl, metaEl, toolCardEl, toolOutEl) {
+  const btn = $('send').disabled ? $('presetRunBtn') : $('send');
+  if (btn) btn.disabled = true;
+  outEl.textContent = '…（Agent 呼叫中，含工具查詢需數十秒）';
+  metaEl.textContent = '';
+  statusEl.textContent = 'Agent 請求中…';
+  if (toolCardEl) toolCardEl.style.display = 'none';
+  try {
+    const resp = await fetch(BASE + '/api/v1/agent/run', { method: 'POST', headers: jsonHeaders(), body: JSON.stringify(body) });
+    const raw = await resp.text();
+    let data; try { data = JSON.parse(raw); } catch (e) { data = { message: raw }; }
+    if (!resp.ok) {
+      statusEl.textContent = `HTTP ${resp.status}`;
+      outEl.textContent = JSON.stringify(data, null, 2);
+      return;
+    }
+    outEl.textContent = data.finalText || data.message;
+    if (toolOutEl) {
+      const calls = (data.toolCalls || []).map(c =>
+        `<div>${c.ok ? '✅' : '❌'} <code>${c.name}</code> ok=${c.ok} latency=${c.latencyMs}ms</div>`).join('');
+      toolOutEl.innerHTML = calls || '（無工具呼叫）';
+    }
+    if (toolCardEl) toolCardEl.style.display = 'block';
+    const u = data.usage || {};
+    metaEl.textContent = `requestId=${data.requestId}  provider=${u.provider}  model=${u.model}  tokens=${u.totalTokens}  工具呼叫=${(data.toolCalls||[]).length} 次`;
+    statusEl.textContent = `HTTP ${resp.status} OK`;
+  } catch (e) {
+    statusEl.textContent = '錯誤';
+    outEl.textContent = String(e);
+  } finally { if (btn) btn.disabled = false; }
+}
+
+async function streamRequest(apiKey, body) {
+  const resp = await fetch(BASE + '/api/v1/chat/stream', { method: 'POST', headers: jsonHeaders(), body: JSON.stringify(body) });
+  if (!resp.ok) {
+    const raw = await resp.text();
+    let data; try { data = JSON.parse(raw); } catch (e) { data = { message: raw }; }
+    $('status').textContent = `HTTP ${resp.status}`;
+    $('output').textContent = JSON.stringify(data, null, 2);
+    return;
+  }
+  if (!resp.body || !resp.headers.get('content-type')?.includes('text/event-stream')) {
+    $('output').textContent = await resp.text();
+    $('status').textContent = `HTTP ${resp.status}`;
+    return;
+  }
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let text = '', buffer = '', meta = '', done = false;
+  while (!done) {
+    const { value, done: d } = await reader.read();
+    done = d;
+    buffer += decoder.decode(value, { stream: !done });
+    const events = buffer.split('\n\n');
+    buffer = events.pop();
+    for (const ev of events) {
+      if (!ev.trim()) continue;
+      const lines = ev.split('\n');
+      const type = lines.find(l => l.startsWith('event:'))?.slice(6).trim();
+      const dataLine = lines.filter(l => l.startsWith('data:')).map(l => l.slice(5).trim()).join('\n');
+      if (!dataLine) continue;
+      let parsed; try { parsed = JSON.parse(dataLine); } catch(e) { continue; }
+      if (type === 'message') { text += parsed.delta ?? ''; $('output').textContent = text; }
+      else if (type === 'usage') { meta = `provider=${parsed.provider} model=${parsed.model} tokens=${parsed.promptTokens + parsed.completionTokens}`; }
+      else if (type === 'error') { text += `\n[ERROR] ${parsed.message}`; $('output').textContent = text; }
+    }
+  }
+  $('meta').textContent = meta;
+  $('status').textContent = 'SSE 串流完成';
+}
+
+// ─── RAG (Tab 2) ───
+function renderFileNames() {
+  const f = $('ragFile').files;
+  const names = Array.from(f).map(x => x.name);
+  $('ragFileName').textContent = names.length ? `已選 ${names.length} 檔：${names.join('、')}` : '';
+}
+$('ragFile').addEventListener('change', renderFileNames);
+$('uploadArea').addEventListener('click', () => $('ragFile').click());
+$('uploadArea').addEventListener('dragover', e => { e.preventDefault(); $('uploadArea').style.borderColor = '#4361ee'; });
+$('uploadArea').addEventListener('dragleave', () => { $('uploadArea').style.borderColor = '#d1d5db'; });
+$('uploadArea').addEventListener('drop', e => {
+  e.preventDefault();
+  $('uploadArea').style.borderColor = '#d1d5db';
+  if (e.dataTransfer.files.length) {
+    $('ragFile').files = e.dataTransfer.files;
+    renderFileNames();
+  }
+});
+
+$('ragIngestBtn').addEventListener('click', async () => {
+  const apiKey = getApiKey();
+  if (!apiKey) { $('ragIngestStatus').textContent = '請先在上方填入 API Key'; return; }
+  const files = Array.from($('ragFile').files);
+  if (!files.length) { $('ragIngestStatus').textContent = '請先選擇檔案'; return; }
+  const ALLOW = /\.(pdf|docx|txt|md)$/i;
+  $('ragIngestBtn').disabled = true;
+  const ok = [], fail = [];
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    $('ragIngestStatus').textContent = `上傳中（${i + 1}/${files.length}）：${file.name} …`;
+    if (!ALLOW.test(file.name)) { fail.push(`${file.name}（不支援的格式）`); continue; }
+    const fd = new FormData();
+    const safeName = file.name.replace(/[^\x20-\x7E]/g, '_').replace(/[()（）]/g, '_');
+    fd.append('originalFilename', file.name);
+    fd.append('file', file, safeName);
+    try {
+      const resp = await fetch(BASE + '/api/v1/rag/ingest', {
+        method: 'POST',
+        headers: { 'X-API-Key': apiKey },
+        body: fd
+      });
+      const data = await readJson(resp);
+      if (!resp.ok) { fail.push(`${file.name}（HTTP ${resp.status}: ${data.message || ''}）`); continue; }
+      ok.push(`${file.name}`);
+    } catch (e) {
+      fail.push(`${file.name}（${String(e)}）`);
+    }
+  }
+  if (ok.length) $('ragIngestStatus').textContent = `✅ 成功 ${ok.length} 檔：${ok.join('、')}` + (fail.length ? `；失敗 ${fail.length} 檔` : '');
+  else $('ragIngestStatus').textContent = `❌ 全部失敗：${fail.join('、')}`;
+  $('ragFile').value = '';
+  renderFileNames();
+  loadRagDocs();
+  $('ragIngestBtn').disabled = false;
+});
+
+$('ragRefreshBtn').addEventListener('click', loadRagDocs);
+loadRagDocs();
+
+async function loadRagDocs() {
+  const list = $('ragDocList');
+  try {
+    const resp = await fetch(BASE + '/api/v1/rag/documents', { headers: { 'X-API-Key': getApiKey() } });
+    const data = await readJson(resp);
+    const docs = data.documents || data || [];
+    if (!docs.length) { list.innerHTML = '<li class="empty-msg">知識庫中無文件</li>'; return; }
+    list.innerHTML = docs.map(d => `
+      <li class="rag-doc-item">
+        <div class="doc-info">
+          <div class="doc-name">${esc(d.filename || d.doc_id || '(未知檔名)')}</div>
+          <div class="doc-meta">doc_id: ${esc(d.doc_id || d.docId || '-')}　chunks: ${d.chunks ?? '?'}　${esc(d.created_at || d.createdAt || '')}</div>
+        </div>
+        <button class="btn-sm btn-danger" onclick="deleteRagDoc('${esc(d.doc_id || d.docId)}')">刪除</button>
+      </li>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = `<li class="empty-msg">載入失敗：${String(e)}</li>`;
+  }
+}
+
+async function deleteRagDoc(docId) {
+  if (!confirm(`確定要刪除文件 ${docId} 嗎？`)) return;
+  try {
+    const resp = await fetch(BASE + '/api/v1/rag/documents/' + encodeURIComponent(docId), {
+      method: 'DELETE',
+      headers: { 'X-API-Key': getApiKey() }
+    });
+    const data = await readJson(resp);
+    if (!resp.ok) { alert(`刪除失敗：${data.message || resp.status}`); return; }
+    loadRagDocs();
+  } catch (e) { alert(`錯誤：${String(e)}`); }
+}
+
+$('ragQueryBtn').addEventListener('click', async () => {
+  const q = $('ragQuery').value.trim();
+  if (!q) { $('ragQueryStatus').textContent = '請輸入查詢問題'; return; }
+  const topK = parseInt($('ragTopK').value, 10) || 5;
+  $('ragQueryBtn').disabled = true;
+  $('ragQueryStatus').textContent = '查詢中…';
+  $('ragQueryResults').innerHTML = '';
+  try {
+    const resp = await fetch(BASE + `/api/v1/rag/query?query=${encodeURIComponent(q)}&topK=${topK}`, {
+      method: 'POST',
+      headers: { 'X-API-Key': getApiKey() }
+    });
+    const data = await readJson(resp);
+    if (!resp.ok) { $('ragQueryStatus').textContent = `失敗 HTTP ${resp.status}: ${data.message || ''}`; return; }
+    const results = data.results || data.parts || data || [];
+    $('ragQueryStatus').textContent = `找到 ${results.length} 筆結果`;
+    $('ragQueryResults').innerHTML = results.map((r, i) => `
+      <div class="rag-query-result">
+        <span class="score">[${i+1}] score: ${(r.score || 0).toFixed(3)}</span>
+        ${r.filename ? `<span style="margin-left:8px;color:#6c757d;">${esc(r.filename)}</span>` : ''}
+        <div class="seg">${esc(r.text || r.content || '')}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    $('ragQueryStatus').textContent = `錯誤：${String(e)}`;
+  } finally { $('ragQueryBtn').disabled = false; }
+});
+
+// ─── RAG 問答（Ask：AI 直接給答案）───
+$('ragAskBtn').addEventListener('click', async () => {
+  const q = $('ragAskQuery').value.trim();
+  if (!q) { $('ragAskStatus').textContent = '請輸入問題'; return; }
+  if (!getApiKey()) { $('ragAskStatus').textContent = '請先在上方填入 API Key'; return; }
+  const topK = parseInt($('ragAskTopK').value, 10) || 5;
+  $('ragAskBtn').disabled = true;
+  $('ragAskStatus').textContent = 'AI 思考中（檢索 + 總結，可能需數十秒）…';
+  const ansEl = $('ragAskAnswer');
+  ansEl.style.display = 'none';
+  $('ragAskSources').textContent = '';
+  try {
+    const resp = await fetch(BASE + `/api/v1/rag/ask?query=${encodeURIComponent(q)}&topK=${topK}`, {
+      method: 'POST',
+      headers: { 'X-API-Key': getApiKey() }
+    });
+    const data = await readJson(resp);
+    if (!resp.ok) { $('ragAskStatus').textContent = `失敗 HTTP ${resp.status}: ${data.message || ''}`; return; }
+    ansEl.style.display = 'block';
+    ansEl.innerHTML = `<div style="white-space:pre-wrap;">${esc(data.answer || '（無答案）')}</div>`;
+    const srcs = data.sources || [];
+    $('ragAskSources').textContent = srcs.length
+      ? `引用來源 ${srcs.length} 段：` + srcs.map(s => `${s.filename || '?'}(score ${s.score})`).join('、')
+      : '';
+    $('ragAskStatus').textContent = data.answerable ? '' : '⚠️ 未能完全根據知識庫回答';
+  } catch (e) {
+    $('ragAskStatus').textContent = `錯誤：${String(e)}`;
+  } finally { $('ragAskBtn').disabled = false; }
+});
+
+// ─── Agent 快測 (Tab 3) ───
+const PRESETS = [
+  { label: '2026年8月有哪些訂單？', tool: 'query_orders', msg: '2026年8月有哪些訂單？請彙整說明' },
+  { label: '哪些訂單來不及交貨？', tool: 'query_risk_orders', msg: '目前有哪些訂單來不及交貨？請說明風險狀況' },
+  { label: '哪些帳還沒收到？有逾期的嗎？', tool: 'query_receivables', msg: '現在有哪些帳還沒收到？有沒有逾期的？' },
+  { label: '2026年各月營收？哪幾月是旺季？', tool: 'query_sales_summary', msg: '2026年各月營收如何？哪幾個月是旺季？' },
+  { label: '前五大客戶是誰？各貢獻多少？', tool: 'query_sales_summary', msg: '前五大客戶是誰？各貢獻多少營收？' },
+  { label: '查「範例科技」客戶資料', tool: 'query_customers', msg: '幫我查一下客戶資料，關鍵字「範例科技」' },
+  { label: '2026年8月出貨紀錄', tool: 'query_deliveries', msg: '幫我查一下2026年8月的出貨紀錄' },
+  { label: '公司營運狀況如何？', tool: 'query_dashboard_kpis', msg: '目前公司營運狀況如何？有哪些需要關注的指標？' },
+  { label: '庫存有低於安全庫存的嗎？', tool: 'query_inventory', msg: '目前有哪些品項低於安全庫存？' },
+  { label: '生產進度到哪了？', tool: 'query_production', msg: '目前生產進度如何？有哪些工單進行中？' },
+  { label: '報價流程？折扣>10%？(RAG)', tool: 'query_knowledge', msg: '根據知識庫文件，公司的報價流程是什麼？折扣超過10%需要誰核准？' },
+];
+
+const grid = $('presetGrid');
+PRESETS.forEach((p, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'preset-btn';
+  btn.innerHTML = `<div class="preset-tool">${p.tool}</div><div class="preset-q">${p.label}</div>`;
+  btn.addEventListener('click', () => runPreset(i));
+  grid.appendChild(btn);
+});
+
+async function runPreset(idx) {
+  const p = PRESETS[idx];
+  const apiKey = getApiKey();
+  if (!apiKey) { alert('請先在上方填入 API Key'); return; }
+  // Switch to this tab's result card
+  $('presetResultCard').style.display = 'block';
+  $('presetOutput').textContent = '…（Agent 呼叫中，需數十秒）';
+  $('presetMeta').textContent = '';
+  $('presetToolOutput').innerHTML = '';
+
+  // Find the button and disable all
+  const btns = grid.querySelectorAll('.preset-btn');
+  btns.forEach(b => b.disabled = true);
+
+  try {
+    const resp = await fetch(BASE + '/api/v1/agent/run', {
+      method: 'POST',
+      headers: jsonHeaders(),
+      body: JSON.stringify({ userMessage: p.msg, maxToolRounds: 8 })
+    });
+    const raw = await resp.text();
+    let data; try { data = JSON.parse(raw); } catch (e) { data = { message: raw }; }
+    if (!resp.ok) {
+      $('presetOutput').textContent = `HTTP ${resp.status}\n${JSON.stringify(data, null, 2)}`;
+      return;
+    }
+    $('presetOutput').textContent = data.finalText || data.message;
+    const calls = (data.toolCalls || []).map(c =>
+      `${c.ok ? '✅' : '❌'} ${c.name}  ok=${c.ok}  latency=${c.latencyMs}ms`).join('\n');
+    $('presetToolOutput').textContent = calls || '（無工具呼叫）';
+    const u = data.usage || {};
+    $('presetMeta').textContent = `requestId=${data.requestId}  provider=${u.provider}  model=${u.model}  tokens=${u.totalTokens}  工具呼叫=${(data.toolCalls||[]).length} 次`;
+  } catch (e) {
+    $('presetOutput').textContent = `錯誤：${String(e)}`;
+  } finally {
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>

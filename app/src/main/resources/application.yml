@@ -1,0 +1,69 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: ai-gateway
+  datasource:
+    url: jdbc:mysql://localhost:3306/aigateway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Taipei&characterEncoding=utf-8&useUnicode=true
+    username: ${DB_USER:aigateway_app}
+    password: ${DB_PASSWORD:}
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      continue-on-error: true
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+mydb:
+  datasource:
+    url: ${MYDB_URL:jdbc:mysql://localhost:3306/mydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Taipei&characterEncoding=utf-8&useUnicode=true}
+    username: ${MYDB_USER:aigateway_ro}
+    password: ${MYDB_PASSWORD:}
+    maximum-pool-size: 4
+
+gateway:
+  provider: ${GATEWAY_PROVIDER:gemini}
+  fallback-providers: ${GATEWAY_FALLBACK_PROVIDERS:}
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    api-key-file: ${GEMINI_API_KEY_FILE:}
+    base-url: https://generativelanguage.googleapis.com/v1beta
+    model: ${GEMINI_MODEL:gemini-3.6-flash}
+    connect-timeout-seconds: 10
+    read-timeout-seconds: 120
+  openai-compat:
+    api-key: ${OPENAI_COMPAT_API_KEY:}
+    api-key-file: ${OPENAI_COMPAT_API_KEY_FILE:}
+    base-url: ${OPENAI_COMPAT_BASE_URL:https://api.x.ai/v1}
+    model: ${OPENAI_COMPAT_MODEL:grok-4-fast}
+    connect-timeout-seconds: 10
+    read-timeout-seconds: 120
+  audit:
+    enabled: true
+  rate-limit:
+    enabled: ${GATEWAY_RATE_LIMIT_ENABLED:false}
+    default-daily: ${GATEWAY_RATE_LIMIT_DAILY:500}
+    default-per-min: ${GATEWAY_RATE_LIMIT_PER_MIN:30}
+  solr:
+    home: ${SOLR_HOME:./solrhome}
+  rag-storage-dir: ${RAG_STORAGE_DIR:./rag-docs}
+  rag:
+    temperature: ${GATEWAY_RAG_TEMPERATURE:0.1}
+    top-k: ${GATEWAY_RAG_TOP_K:3}
+    min-score: ${GATEWAY_RAG_MIN_SCORE:0.0}
+  agent:
+    temperature: ${GATEWAY_AGENT_TEMPERATURE:0.2}
+    max-rounds: ${GATEWAY_AGENT_MAX_ROUNDS:8}
+    knowledge-top-k: ${GATEWAY_AGENT_RAG_TOP_K:5}
+    knowledge-min-score: ${GATEWAY_AGENT_RAG_MIN_SCORE:0.0}
+
+logging:
+  level:
+    root: INFO
+    com.charphone.aigateway: INFO

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema name="rag" version="1.6">
+  <field name="id"          type="string"    indexed="true" stored="true" required="true"/>
+  <field name="doc_id"      type="string"    indexed="true" stored="true"/>
+  <field name="filename"    type="string"    indexed="true" stored="true"/>
+  <field name="chunk_index" type="pint"      indexed="true" stored="true"/>
+  <field name="text"        type="text_auto" indexed="true" stored="true"/>
+  <field name="embedding"   type="knn_3072" indexed="true" stored="true"/>
+  <field name="created_at"  type="pdate"     indexed="true" stored="true" default="NOW"/>
+
+  <uniqueKey>id</uniqueKey>
+
+  <fieldType name="string"  class="solr.StrField"   sortMissingLast="true"/>
+  <fieldType name="pint"    class="solr.IntPointField"   sortMissingLast="true"/>
+  <fieldType name="pdate"   class="solr.DatePointField"  sortMissingLast="true"/>
+
+  <fieldType name="text_auto" class="solr.TextField" positionIncrementGap="100">
+    <analyzer>
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.LowerCaseFilterFactory"/>
+    </analyzer>
+  </fieldType>
+
+  <fieldType name="knn_3072" class="solr.DenseVectorField"
+             vectorDimension="3072"
+             similarityFunction="COSINE"/>
+</schema>

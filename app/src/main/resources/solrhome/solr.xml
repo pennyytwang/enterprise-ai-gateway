@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<solr>
+  <solrcloud enabled="false">
+    <str name="host">localhost</str>
+    <str name="hostPort">8983</str>
+    <str name="hostContext"></str>
+  </solrcloud>
+  <metrics enabled="false"/>
+</solr>

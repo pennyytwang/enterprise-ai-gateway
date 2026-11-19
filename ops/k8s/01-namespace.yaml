@@ -1,0 +1,8 @@
+# 企業 AI Gateway — 本機 K8s 練習 namespace
+# 同一個 namespace 內的 Pod 可透過 Service 名稱互相解析
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-gateway
+  labels:
+    app: ai-gateway
