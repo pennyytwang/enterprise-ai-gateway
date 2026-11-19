@@ -31,7 +31,7 @@ CharPhone / 內部系統
                      └─ Embedded Solr（RAG 向量檢索）
 ```
 
-詳細設計見 [docs/architecture.md](docs/architecture.md)。
+詳細設計文件未隨公開版發布。
 
 ## 技術棧
 
@@ -96,7 +96,7 @@ kubectl apply -k ops/k8s
 kubectl port-forward svc/ai-gateway -n ai-gateway 8081:8080
 ```
 
-詳見 [ops/k8s/README.md](ops/k8s/README.md)。
+Kubernetes manifests 位於 `ops/k8s/`，詳細說明未隨公開版發布。
 
 ## 目錄結構
 
