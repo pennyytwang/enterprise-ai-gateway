@@ -1,5 +1,11 @@
 * text=auto
 
+.env.example text eol=lf
+.env.sample  text eol=lf
+.gitattributes text eol=lf
+.gitignore     text eol=lf
+LICENSE        text eol=lf
+
 *.sh    text eol=lf
 *.sql   text eol=lf
 *.java  text eol=lf
